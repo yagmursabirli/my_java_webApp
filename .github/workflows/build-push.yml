@@ -1,0 +1,37 @@
+name: Build Docker Image and Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+
+      - name: Sign in to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Docker login to ACR
+        uses: azure/docker-login@v1
+        with:
+          login-server: acrpetek123.azurecr.io
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build & Push Docker image
+        run: |
+          docker build . -t acrpetek123.azurecr.io/my-java-webapp:${{ github.sha }}
+          docker push acrpetek123.azurecr.io/my-java-webapp:${{ github.sha }}
+
+      - name: Deploy to App Service
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: dockerMyApp
+          images: acrpetek123.azurecr.io/my-java-webapp:${{ github.sha }}
